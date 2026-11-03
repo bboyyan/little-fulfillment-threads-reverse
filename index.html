@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>@little.fulfillment.project｜Threads 帳號逆向工程</title>
+  <meta name="description" content="小實現 Derrick（@little.fulfillment.project）公開資料逆向：心理學視覺化、測驗工具與小地圖 App 的成長機制。" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Noto+Sans+TC:wght@400;500;600;700&family=Noto+Serif+TC:wght@500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --paper: #f4efe6;
+      --paper-deep: #ebe4d6;
+      --card: #fffcf7;
+      --stone: #d8d0c2;
+      --rule: #cfc6b6;
+      --ink: #2a2622;
+      --ink-soft: #5a534b;
+      --muted: #7a7268;
+      --terracotta: #8d5a3a;
+      --sage: #4f6148;
+      --clay: #a07848;
+      --flag: #8a4034;
+      --shadow: 0 10px 28px rgba(42, 38, 34, 0.07);
+      --shadow-hover: 0 16px 36px rgba(42, 38, 34, 0.12);
+      --radius: 14px;
+      --display: "Noto Serif TC", "Cormorant Garamond", "Songti TC", serif;
+      --serif: "Cormorant Garamond", "Noto Serif TC", Georgia, serif;
+      --sans: "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", system-ui, sans-serif;
+      --pad: clamp(1.15rem, 3.2vw, 2.4rem);
+      --max: 860px;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: var(--sans);
+      background: var(--paper);
+      color: var(--ink);
+      line-height: 1.7;
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+    }
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+      background:
+        radial-gradient(ellipse 70% 40% at 0% 0%, rgba(168, 132, 90, 0.08), transparent 50%),
+        radial-gradient(ellipse 50% 30% at 100% 8%, rgba(90, 110, 80, 0.05), transparent 46%);
+    }
+    a { color: var(--terracotta); text-decoration-thickness: 1px; text-underline-offset: 3px; }
+    a:hover { color: var(--flag); }
+    .page {
+      position: relative;
+      z-index: 1;
+      max-width: var(--max);
+      margin: 0 auto;
+      padding: 1.5rem var(--pad) 5rem;
+    }
+    .masthead {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      font-size: 0.72rem;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--muted);
+      padding-bottom: 1.15rem;
+      border-bottom: 1px solid var(--rule);
+    }
+    .mast-mark { color: var(--ink); font-weight: 600; letter-spacing: 0.14em; }
+    .mast-rule { flex: 1; height: 1px; background: var(--rule); }
+    .hero { padding: 3.1rem 0 1.5rem; }
+    .kicker {
+      font-family: var(--serif);
+      font-style: italic;
+      font-size: 1.05rem;
+      color: var(--terracotta);
+      margin-bottom: 0.85rem;
+    }
+    .hero h1 {
+      font-family: var(--display);
+      font-weight: 600;
+      font-size: clamp(2.05rem, 5.2vw, 3.2rem);
+      line-height: 1.2;
+      letter-spacing: -0.02em;
+      margin-bottom: 1.1rem;
+    }
+    .hero .lead {
+      font-size: 1.05rem;
+      color: var(--ink-soft);
+      max-width: 36rem;
+      margin-bottom: 1.2rem;
+    }
+    .hero-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.65rem 1.15rem;
+      font-size: 0.78rem;
+      letter-spacing: 0.06em;
+      color: var(--muted);
+    }
+    .hero-meta span + span::before {
+      content: "·";
+      margin-right: 1.15rem;
+      color: var(--stone);
+    }
+    .pull {
+      font-family: var(--display);
+      font-size: clamp(1.25rem, 2.8vw, 1.55rem);
+      font-weight: 600;
+      line-height: 1.45;
+      color: var(--ink);
+      padding: 1.35rem 0 1.35rem 1.1rem;
+      border-left: 2px solid var(--terracotta);
+      margin: 0.5rem 0 2.4rem;
+      max-width: 38rem;
+    }
+    .disclaimer {
+      font-size: 0.78rem;
+      line-height: 1.7;
+      color: var(--muted);
+      max-width: 42rem;
+      padding: 0 0 0 0.9rem;
+      border-left: 2px solid var(--stone);
+      margin: 0 0 2.6rem;
+    }
+    .disclaimer em { font-style: normal; font-weight: 600; color: var(--ink-soft); }
+    .toc {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.45rem;
+      margin: 0 0 2.75rem;
+      padding-top: 1.2rem;
+      border-top: 1px solid var(--rule);
+    }
+    .toc a {
+      font-size: 0.75rem;
+      color: var(--ink-soft);
+      text-decoration: none;
+      border: 1px solid var(--stone);
+      border-radius: 999px;
+      padding: 0.35rem 0.85rem;
+      background: transparent;
+      transition: background 0.15s, color 0.15s, border-color 0.15s;
+    }
+    .toc a:hover {
+      border-color: var(--ink);
+      color: var(--ink);
+      background: var(--card);
+    }
+    section.block { margin-bottom: 2.85rem; scroll-margin-top: 1.5rem; }
+    .section-kicker {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 1rem;
+      margin-bottom: 1rem;
+      padding-bottom: 0.75rem;
+      border-bottom: 1px solid var(--rule);
+    }
+    .section-kicker h2 {
+      font-family: var(--display);
+      font-size: 1.35rem;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+    }
+    .section-kicker span {
+      font-size: 0.75rem;
+      color: var(--muted);
+      letter-spacing: 0.04em;
+      white-space: nowrap;
+    }
+    .prose p { margin-bottom: 0.85rem; color: var(--ink-soft); }
+    .prose p:last-child { margin-bottom: 0; }
+    .prose strong { color: var(--ink); font-weight: 600; }
+    .note-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.85rem;
+      margin: 1rem 0 0;
+    }
+    @media (max-width: 700px) {
+      .note-row, .picks, .pillars, .two { grid-template-columns: 1fr; }
+      .legend-row { grid-template-columns: 1fr 1fr; }
+    }
+    .note {
+      background: var(--card);
+      border: 1px solid rgba(42, 38, 34, 0.07);
+      border-radius: var(--radius);
+      padding: 1rem 1.1rem;
+      box-shadow: var(--shadow);
+      font-size: 0.9rem;
+      color: var(--ink-soft);
+    }
+    .note .lab {
+      display: block;
+      font-size: 0.68rem;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      font-weight: 600;
+      margin-bottom: 0.45rem;
+    }
+    .note.fact .lab { color: var(--sage); }
+    .note.infer .lab { color: var(--terracotta); }
+    .picks {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0.85rem;
+      margin-top: 1rem;
+    }
+    .pick {
+      background: var(--card);
+      border: 1px solid rgba(42, 38, 34, 0.07);
+      border-radius: var(--radius);
+      padding: 1.15rem 1.15rem 1.2rem;
+      box-shadow: var(--shadow);
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+      min-height: 100%;
+    }
+    .pick .lab {
+      font-size: 0.68rem;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--terracotta);
+      font-weight: 600;
+    }
+    .pick .name {
+      font-family: var(--display);
+      font-weight: 600;
+      font-size: 1.05rem;
+      line-height: 1.35;
+    }
+    .pick .why { font-size: 0.82rem; color: var(--muted); line-height: 1.55; }
+    .pick .metric {
+      margin-top: auto;
+      padding-top: 0.55rem;
+      font-family: var(--serif);
+      font-size: 0.95rem;
+      color: var(--ink-soft);
+    }
+    .pillars {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 0.55rem;
+      margin-top: 0.75rem;
+    }
+    .pillar {
+      display: grid;
+      grid-template-columns: 1.4fr 0.55fr 1fr;
+      gap: 0.75rem;
+      align-items: baseline;
+      padding: 0.85rem 0;
+      border-bottom: 1px solid var(--rule);
+      font-size: 0.92rem;
+    }
+    .pillar:first-child { border-top: 1px solid var(--rule); }
+    .pillar b {
+      font-family: var(--display);
+      font-weight: 600;
+      font-size: 1rem;
+      color: var(--ink);
+    }
+    .pillar .pct { color: var(--terracotta); font-family: var(--serif); font-size: 1.05rem; }
+    .pillar .role { color: var(--muted); font-size: 0.82rem; }
+    .mode {
+      background: var(--card);
+      border: 1px solid rgba(42, 38, 34, 0.07);
+      border-radius: var(--radius);
+      padding: 1.15rem 1.2rem 1.05rem;
+      box-shadow: var(--shadow);
+      margin: 0.85rem 0;
+    }
+    .mode h3 {
+      font-family: var(--display);
+      font-size: 1.08rem;
+      font-weight: 600;
+      margin-bottom: 0.45rem;
+      letter-spacing: -0.01em;
+    }
+    .mode p { font-size: 0.92rem; color: var(--ink-soft); margin-bottom: 0.45rem; }
+    .mode p:last-child { margin-bottom: 0; }
+    .mode .ex {
+      font-family: var(--serif);
+      font-style: italic;
+      color: var(--ink);
+      font-size: 0.98rem;
+    }
+    table.hooks {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.88rem;
+      margin-top: 0.5rem;
+    }
+    table.hooks th {
+      text-align: left;
+      font-size: 0.72rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+      font-weight: 600;
+      padding: 0.65rem 0.4rem;
+      border-bottom: 1px solid var(--rule);
+    }
+    table.hooks td {
+      padding: 0.85rem 0.4rem;
+      border-bottom: 1px solid var(--rule);
+      vertical-align: top;
+      color: var(--ink-soft);
+    }
+    table.hooks td:first-child {
+      font-family: var(--display);
+      font-weight: 600;
+      color: var(--ink);
+      width: 26%;
+    }
+    .dna-list, .plain-list {
+      list-style: none;
+      margin: 0.4rem 0 0;
+    }
+    .dna-list li, .plain-list li {
+      position: relative;
+      padding: 0.55rem 0 0.55rem 1rem;
+      border-bottom: 1px solid var(--rule);
+      color: var(--ink-soft);
+      font-size: 0.94rem;
+    }
+    .dna-list li::before, .plain-list li::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: 1.05rem;
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: var(--terracotta);
+    }
+    .flow {
+      margin-top: 0.85rem;
+      background: var(--paper-deep);
+      border: 1px solid var(--stone);
+      border-radius: var(--radius);
+      padding: 1.2rem 1.3rem;
+      font-family: var(--serif);
+      font-size: 1.02rem;
+      line-height: 1.75;
+      color: var(--ink);
+      white-space: pre-line;
+    }
+    .two {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.85rem;
+      margin-top: 0.85rem;
+    }
+    .tier {
+      background: var(--card);
+      border: 1px solid rgba(42, 38, 34, 0.07);
+      border-radius: var(--radius);
+      padding: 1.1rem 1.15rem;
+      box-shadow: var(--shadow);
+    }
+    .tier h3 {
+      font-family: var(--display);
+      font-size: 1.05rem;
+      margin-bottom: 0.55rem;
+    }
+    .tier.a h3 { color: var(--sage); }
+    .tier.b h3 { color: var(--clay); }
+    .tier.c h3 { color: var(--flag); }
+    .tier ul {
+      margin-left: 1.05rem;
+      color: var(--ink-soft);
+      font-size: 0.9rem;
+    }
+    .tier li { margin: 0.25rem 0; }
+    .topics {
+      counter-reset: topic;
+      list-style: none;
+      margin-top: 0.5rem;
+    }
+    .topics li {
+      counter-increment: topic;
+      display: grid;
+      grid-template-columns: 2rem 1fr;
+      gap: 0.65rem;
+      padding: 0.85rem 0;
+      border-bottom: 1px solid var(--rule);
+      color: var(--ink-soft);
+      font-size: 0.96rem;
+    }
+    .topics li::before {
+      content: counter(topic, decimal-leading-zero);
+      font-family: var(--serif);
+      color: var(--terracotta);
+      font-size: 1.05rem;
+      padding-top: 0.05rem;
+    }
+    footer {
+      margin-top: 3rem;
+      padding-top: 1.4rem;
+      border-top: 1px solid var(--rule);
+      color: var(--muted);
+      font-size: 0.78rem;
+      line-height: 1.7;
+    }
+    footer p + p { margin-top: 0.35rem; }
+    .shots { display:grid; grid-template-columns:1fr 1fr; gap:0.85rem; margin-top:1rem; }
+    @media (max-width:700px){ .shots{grid-template-columns:1fr;} }
+    .shots figure { background:var(--card); border:1px solid rgba(42,38,34,0.07); border-radius:var(--radius); padding:0.6rem; box-shadow:var(--shadow); }
+    .shots img { width:100%; height:auto; border-radius:10px; display:block; }
+    .shots figcaption { font-size:0.75rem; color:var(--muted); padding:0.5rem 0.2rem 0.1rem; }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <p class="masthead"><span class="mast-mark">SupaThreads</span><span class="mast-rule" aria-hidden="true"></span><span>Vol. 2026 · Account Reverse</span></p>
+    <header class="hero">
+      <p class="kicker">Threads reverse engineering</p>
+      <h1>小實現 Derrick｜視覺化生涯教練<br />@little.fulfillment.project</h1>
+      <p class="lead">把心理學與書畫成「看得見的地圖」，再把地圖做成可以玩的測驗與 App。這份報告拆解：37.7K 追蹤背後，觸及與轉換是怎麼被分層製造的。</p>
+      <p class="hero-meta"><span>整理 2026-11-04（台北時間）</span><span>樣本 51 則（48 篇 2026 原創＋置頂＋3 則引用舊文）</span><span>約 12 則無互動數</span><span>信心：中</span></p>
+    </header>
+    <p class="pull">用「權威名字＋框架圖卡」換收藏與分享，再用「我花了 N 小時做了一個測驗」把分享流量導進小地圖 App。</p>
+    <p class="disclaimer" role="note">本報告僅依公開貼文與互動數推演。<em>事實</em>＝樣本中直接可見；<em>推論</em>＝我的解讀。追蹤成長率、點擊、註冊轉換看不到，不虛構（唯一的註冊數字「400 個註冊用戶」為作者自述）。Threads 隱藏 0 值，只顯示 1–3 個數字的列無法對應欄位，不納入比較。樣本僅涵蓋 07/17/26–10/23/26，約 3.5 個月。</p>
+
+    <nav class="toc" aria-label="章節">
+      <a href="#one">一句話</a><a href="#why">為什麼成功</a><a href="#audience">核心受眾</a><a href="#pillars">內容支柱</a><a href="#modes">Top 成功模式</a><a href="#hooks">Hook Library</a><a href="#dna">Writing DNA</a><a href="#loop">成長飛輪</a><a href="#copy5">值得複製 5 件</a><a href="#nocopy3">不要複製 3 件</a><a href="#gap">Opportunity Gap</a><a href="#mine">換成我的帳號</a><a href="#topics">10 個可測題目</a>
+    </nav>
+
+    <section class="block" id="one">
+      <div class="section-kicker"><h2>一句話看懂這個帳號</h2><span>01</span></div>
+      <div class="prose"><p>一個<strong>前特教老師／人資／獵頭、現讀心理碩</strong>的人，把心理學與書「畫成地圖」日更，並把高分享的框架升級成<strong>可玩的測驗</strong>，最後收進自己的生涯 App「小地圖」與三個月陪跑。</p></div>
+      <div class="shots">
+        <figure><img src="assets/profile.png" alt="@little.fulfillment.project 個人頁截圖" /><figcaption>個人頁：37.7K 追蹤、近期 1.9M 瀏覽、連結 app.lil-fulfillment.com（截圖 2026-11-04）</figcaption></figure>
+        <figure><img src="assets/pinned.png" alt="置頂貼文截圖" /><figcaption>置頂：「在Threads土生土長到20000追蹤…」創業故事，550 / 29 / 11 / 90</figcaption></figure>
+      </div>
+    </section>
+
+    <section class="block" id="why">
+      <div class="section-kicker"><h2>它為什麼成功</h2><span>02 · 機制，不是雞湯</span></div>
+      <div class="note-row">
+        <div class="note fact"><span class="lab">事實</span>近乎每天 1–2 串，幾乎都是兩段式（第 1 段 hook＋圖卡、第 2 段解說或連結）。可比較的 4 數字樣本中，likes 多落在約 50–370；明顯高於常態的只有 4 篇：Pratchett 語錄 2.7K、《原子習慣》決策層級圖 1.6K、30 小時測驗 827、無聊倦怠 vs. 職業倦怠 675。</div>
+        <div class="note infer"><span class="lab">推論</span>成功是三層疊加：①<strong>借權威命名</strong>（教授、書名、研究人數）讓框架看起來值得收藏；②<strong>格式工業化</strong>——同一個圖卡殼、同一個兩段式，讓日更成本低；③<strong>工具化</strong>——把框架做成測驗，分享從「我同意」變成「你也來測」。</div>
+      </div>
+      <div class="picks" style="margin-top:1rem">
+        <article class="pick"><span class="lab">Top 01 · 07/21</span><p class="name">Pratchett「為什麼要離開？」語錄</p><p class="why">純文字語錄；reposts 377 為樣本最高</p><p class="metric">2.7K · 7 · 377 · 218</p></article>
+        <article class="pick"><span class="lab">Top 02 · 08/03</span><p class="name">《原子習慣》三種決策層級圖</p><p class="why">書名權威＋一張圖講完</p><p class="metric">1.6K · 14 · 204 · 474</p></article>
+        <article class="pick"><span class="lab">Top 03 · 10/23</span><p class="name">30 小時做「興趣×意義感」測驗</p><p class="why">shares 656 為樣本最高；分享／按讚比 ≈0.79</p><p class="metric">827 · 23 · 111 · 656</p></article>
+      </div>
+      <p class="prose" style="margin-top:0.8rem;font-size:0.85rem;color:var(--muted)">欄位：likes · replies · reposts · shares。另一篇高峰：無聊倦怠 vs. 職業倦怠（08/08）675 · 10 · 49 · 212。</p>
+    </section>
+
+    <section class="block" id="audience">
+      <div class="section-kicker"><h2>核心受眾</h2><span>03</span></div>
+      <div class="picks">
+        <article class="pick"><span class="lab">人生階段</span><p class="name">職涯卡關的 25–35 歲上班族（推論）</p><p class="why">倦怠、意義感、價值觀、休息——話題集中在「工作還行但不知道為什麼」。</p></article>
+        <article class="pick"><span class="lab">內容需求</span><p class="name">可收藏的框架＋自我盤點</p><p class="why">想用一張圖替自己的狀態命名，最好能測出結果。</p></article>
+        <article class="pick"><span class="lab">產品出口</span><p class="name">小地圖 App／陪跑</p><p class="why">Bio 寫明「免費自我盤點」與「先免費聊 45 分鐘」（事實）。</p></article>
+      </div>
+      <div class="prose" style="margin-top:1rem"><p><strong>推論：</strong>帳號提供的主價值是「被命名」＋「有工具可用」，陪伴與身份認同是次要。讀書會／愛讀書的人是第二圈受眾（書摘支柱、「一年讀約 100 本書」）。</p></div>
+    </section>
+
+    <section class="block" id="pillars">
+      <div class="section-kicker"><h2>內容支柱</h2><span>04 · 占比依 51 則粗估</span></div>
+      <div class="pillars">
+        <div class="pillar"><b>心理學框架圖卡（X vs. Y、N 種、研究者）</b><span class="pct">~35–40%</span><span class="role">穩定觸及＋高收藏分享</span></div>
+        <div class="pillar"><b>書摘視覺化（原子習慣、焦慮、FOPO…）</b><span class="pct">~15–20%</span><span class="role">專業感；偶爾爆（1.6K）</span></div>
+        <div class="pillar"><b>語錄（純文字）</b><span class="pct">~15%</span><span class="role">極不穩定：2.7K 也可能個位數</span></div>
+        <div class="pillar"><b>測驗／工具（念能力、七夕、意義感）</b><span class="pct">~10%</span><span class="role">分享引擎＋轉換橋</span></div>
+        <div class="pillar"><b>Build in public＋產品／活動 CTA</b><span class="pct">~15–20%</span><span class="role">轉換與關係，非觸及</span></div>
+        <div class="pillar"><b>關係／愛情</b><span class="pct">~5–10%</span><span class="role">延伸受眾</span></div>
+      </div>
+    </section>
+
+    <section class="block" id="modes">
+      <div class="section-kicker"><h2>Top 成功模式</h2><span>05 · 對照機制檢查清單</span></div>
+      <article class="mode"><h3>A · 命名／區分帖 &gt; 安慰帖</h3><p class="ex">「在職場上的不滿意，簡單可以分兩類：1. 無聊倦怠 2. 職業倦怠」</p><p><b>事實：</b>前四名中 2 篇是「區分／分層」圖卡（倦怠兩類、決策三層），另有「休息其實有四種」365 likes。純安慰型（如 Kelly McGonigal 自我苛刻長文）未擷取到數字。<b>推論：</b>爆點不是「被安慰」，而是「終於有詞形容我」。此帳號的命名偏<strong>狀態命名</strong>（我是哪種倦怠），而非身份標籤（我是哪種人）。</p></article>
+      <article class="mode"><h3>B · likes／shares 與 replies 走不同機制</h3><p><b>事實：</b>replies 在樣本中普遍很低（多為個位數）；最高的是測驗帖 23 與「我決定自己做一個網頁 App，有人會有興趣嗎？」22（該帖僅 107 likes）。shares 最高的是測驗 656、原子習慣 474。<b>推論：</b>shares 靠「可收藏框架／可測工具」，replies 靠<strong>直接提問＋作者本人的計畫</strong>，不是靠可爭辯命題。這個帳號幾乎不做爭議主張——所以 replies 天花板低。原 brief 假設的「身份翻轉帶 shares、可爭辯主張帶 replies」只部分成立：前半改為「框架／工具帶 shares」，後半在本樣本中缺乏爭議帖可驗證。</p></article>
+      <article class="mode"><h3>C · 格式工業化</h3><p><b>事實：</b>多數串為兩段式；第 1 段＝hook＋圖卡輪播（1/2–1/9），第 2 段＝解說或連結；hook 常帶書名號或研究者名。<b>推論：</b>固定殼讓讀者在動態中一眼認出「又是那種可存的圖」，並讓作者以讀書筆記為原料日更。</p></article>
+      <article class="mode"><h3>D · 觸及／轉換分層</h3><p><b>事實：</b>連結多放在第 2 段（測驗、電子報 kit.com、活動報名），或寫「測驗連結在我的 Threads 主頁」；置頂是創業故事，第 2 段放贊助連結（portaly.cc）；Bio 連結 app.lil-fulfillment.com。純連結帖（08/15 電子報）僅 11 likes。<b>推論：</b>主文負責觸及、第 2 段與置頂負責轉換；單獨發 CTA 幾乎無觸及——轉換必須寄生在高觸及串上。</p></article>
+      <article class="mode"><h3>E · 測驗／工具帖帶分享</h3><p class="ex">「花了30小時，把『興趣』跟『意義感』開發成線上測驗… 有人會想玩玩看嗎？」</p><p><b>事實：</b>分享／按讚比：測驗帖 ≈0.79、念能力測驗 61/103 ≈0.59、原子習慣 ≈0.30、Pratchett ≈0.08。作者自述某日「又湧入了 400 個註冊用戶」。<b>推論：</b>測驗是最強的分享機制，也是最短的 App 漏斗；「我花了 N 小時」同時提供努力證明與好奇心。註冊與測驗的因果無法從公開資料確認。</p></article>
+      <article class="mode"><h3>F · 語錄是彩券，不是策略</h3><p><b>事實：</b>最高 2.7K 是語錄，但其他語錄列多數只顯示個位到兩位數字（欄位不明）。<b>推論：</b>語錄的上限高、變異大，且無法導向 App；可當低成本補位，不宜當主力。</p></article>
+    </section>
+
+    <section class="block" id="hooks">
+      <div class="section-kicker"><h2>Hook Library</h2><span>06 · 案例 → 模板</span></div>
+      <table class="hooks"><thead><tr><th>Pattern</th><th>原始案例</th><th>可重複模板</th></tr></thead><tbody>
+        <tr><td>狀態二分</td><td>無聊倦怠 vs. 職業倦怠</td><td>「你的____其實分兩種：A 和 B」</td></tr>
+        <tr><td>X vs. Y 區分</td><td>好的逃避 vs. 壞的逃避／有效果 vs. 有效率</td><td>「好的____ vs. 壞的____」</td></tr>
+        <tr><td>N 種分類</td><td>休息其實有四種</td><td>「____其實有 N 種，解決的____完全不同」</td></tr>
+        <tr><td>權威＋數字</td><td>哥大教授：輸入／輸出 3:7</td><td>「〔機構〕教授發現，____的黃金比例是 X:Y」</td></tr>
+        <tr><td>書名＋比喻</td><td>《原子習慣》用三個比喻分三層決策</td><td>「《書名》用 N 個比喻，把____分成 N 層」</td></tr>
+        <tr><td>研究人數</td><td>心理學家研究了 220 個人</td><td>「心理學家研究了 N 個人，發現____」</td></tr>
+        <tr><td>努力證明＋邀請</td><td>花了 30 小時開發成線上測驗，有人想玩嗎？</td><td>「我花了 N 小時把____做成____，有人想試嗎？」</td></tr>
+        <tr><td>時事掛鉤測驗</td><td>9/1 友克鑫市→念能力測驗；七夕→遠距離健檢</td><td>「今天是____，所以我做了一個____測驗」</td></tr>
+        <tr><td>錯誤承認</td><td>我以為很簡單，但我錯了</td><td>「我以為____很簡單，但我錯了」</td></tr>
+      </tbody></table>
+    </section>
+
+    <section class="block" id="dna">
+      <div class="section-kicker"><h2>Writing DNA</h2><span>07</span></div>
+      <ul class="dna-list">
+        <li>短行、一行一意、大量編號清單；資訊量交給圖卡（事實）</li>
+        <li>Hook 幾乎都帶「憑證」：教授、作者、書名、研究人數、比例數字（事實）</li>
+        <li>第一人稱「我」：讀到、畫了、花了 N 小時做了——學習者而非權威姿態（事實）</li>
+        <li>口語收尾：XD、qq、提問「你們覺得合理嗎？」（事實）</li>
+        <li>幾乎不製造衝突、不罵人；語氣溫和、像同學分享筆記（推論）</li>
+        <li>總句：權威框架 × 一張圖 × 我做了一個工具 × 連結在第 2 段</li>
+      </ul>
+    </section>
+
+    <section class="block" id="loop">
+      <div class="section-kicker"><h2>成長飛輪</h2><span>08 · 觸及引擎與轉換層分開</span></div>
+      <div class="flow">讀書／心理學研究（原料）
+→ 框架圖卡日更（觸及引擎：收藏、分享）
+→ 高分享框架升級成測驗（分享引擎＋好奇）
+→ 第 2 段／主頁／置頂放 app.lil-fulfillment.com（轉換層）
+→ 小地圖免費自我盤點 → 45 分鐘免費諮詢 → 三個月陪跑（變現）
+→ Build in public 回報註冊數與新模組（信任＋下一輪題材）</div>
+      <p class="prose" style="margin-top:1rem"><strong>推論：</strong>真正的成長循環是「框架 → 測驗 → App → 公開回報」。語錄與書摘補觸及，但不進漏斗。作者 10/22 自述「Threads 演算法流量不穩，開始學 SEO、AEO」——顯示他自己也在把轉換層搬離單一平台。</p>
+    </section>
+
+    <section class="block" id="copy5">
+      <div class="section-kicker"><h2>最值得複製的 5 件事</h2><span>09 · 抄機制，不抄句子</span></div>
+      <div class="two">
+        <div class="tier a"><h3>A · 高度可複製</h3><ul><li>① 固定兩段式殼：hook＋圖卡／第 2 段解說＋連結</li><li>② 「分兩種／N 種／X vs. Y」狀態命名 hook</li><li>③ CTA 永遠不放第一屏，寄生在高觸及串</li></ul></div>
+        <div class="tier b"><h3>B · 條件式可複製</h3><ul><li>④ 把高分享框架做成測驗（需能做簡單網頁）</li><li>⑤ Build in public：公開回報做了什麼、多少人用（需真的有產品）</li></ul></div>
+      </div>
+    </section>
+
+    <section class="block" id="nocopy3">
+      <div class="section-kicker"><h2>不要複製的 3 件事</h2><span>10</span></div>
+      <div class="tier c"><ul>
+        <li>把語錄當主力——2.7K 是單點彩券，且不進漏斗</li>
+        <li>單獨發純 CTA／訂閱帖（08/15 電子報帖 11 likes）</li>
+        <li>主題過度發散（疫苗猶豫、獵人、七夕、愛情）——稀釋「生涯」定位；他有 37.7K 底盤可以承受，小帳號不行</li>
+      </ul></div>
+    </section>
+
+    <section class="block" id="gap">
+      <div class="section-kicker"><h2>Opportunity Gap</h2><span>11 · 推論</span></div>
+      <ul class="plain-list">
+        <li>倦怠兩類（675）、休息四種（365）表現好，但沒有形成「倦怠系列」或「倦怠測驗」</li>
+        <li>replies 普遍低：幾乎沒有可爭辯主張，留言區沒被當成選題來源</li>
+        <li>測驗帖分享極高，但測驗結果沒有被設計成「可截圖的結果卡」回流 Threads（樣本中看不到）</li>
+        <li>App 漏斗只在少數帖出現；高峰帖（Pratchett、原子習慣）第 2 段未見導 App 的痕跡</li>
+        <li>樣本中 09/09 之後到 10/22 之間缺貼文（可能是擷取限制，非確定斷更）</li>
+      </ul>
+    </section>
+
+    <section class="block" id="mine">
+      <div class="section-kicker"><h2>如果換成我的帳號</h2><span>12 · @brainness.ai 溫力教練</span></div>
+      <div class="prose"><p>定位軸心：<strong>40+ 成人運動員「續場」</strong>、<strong>AI 執行觀</strong>、<strong>大人的鬆弛感</strong>。移植的是機制，不是心理學題材。</p></div>
+      <ul class="plain-list">
+        <li><strong>狀態二分命名：</strong>「40 歲後的累分兩種：恢復不足 vs. 動機耗盡」——讓讀者給自己的狀態一個詞</li>
+        <li><strong>固定圖卡殼：</strong>一種「續場地圖」視覺打到底，第 1 段 hook＋圖、第 2 段解說</li>
+        <li><strong>做一個測驗當出口：</strong>「續場指數測驗」或「你的 AI 執行卡點測驗」，用「我花了 N 小時做」開場</li>
+        <li><strong>CTA 只放第 2 段與置頂：</strong>置頂寫「為什麼 40 歲後我還在場上」的起源故事</li>
+        <li><strong>補他沒做的：</strong>每週 1 則可爭辯主張（如「40 歲後不該再追 PR」）測 replies，並把測驗結果做成可截圖卡</li>
+      </ul>
+    </section>
+
+    <section class="block" id="topics">
+      <div class="section-kicker"><h2>接下來可測試的 10 個 Threads 題目</h2><span>13</span></div>
+      <ol class="topics">
+        <li>「40 歲後的累，其實分兩種：恢復不足 vs. 動機耗盡」</li>
+        <li>「大人的休息有四種，你補錯的那種最傷」</li>
+        <li>「好的停練 vs. 壞的停練」</li>
+        <li>「我花了 20 小時做了一個『續場指數』測驗，有人想測嗎？」</li>
+        <li>「用 AI 卻沒變快的人，卡在這三個執行層級」</li>
+        <li>「鬆弛感 vs. 擺爛：差在一個問題」</li>
+        <li>「40 歲後不該再追 PR？我的看法可能跟你相反」（測 replies）</li>
+        <li>「研究追蹤了大齡跑者：會繼續上場的人，多做了這件事」（需先找到真實研究再寫）</li>
+        <li>「續場地圖：從受傷到回場的五個階段」</li>
+        <li>「我以為 AI 能幫我練得更好，但我錯了」</li>
+      </ol>
+    </section>
+
+    <footer>
+      <p>來源：threads.com/@little.fulfillment.project 公開貼文（2026-11-04 擷取，51 則）· 由 SupaThreads 整理</p>
+      <p>限制：僅能捲動到的貼文；約 12 則無互動數；1–3 數字列欄位不明未比較；未取得追蹤成長與轉換數據。信心：中。</p>
+    </footer>
+  </div>
+</body>
+</html>
